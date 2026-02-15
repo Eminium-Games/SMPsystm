@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class PlayerWorldChangeListener implements Listener {
     
@@ -16,6 +17,24 @@ public class PlayerWorldChangeListener implements Listener {
     
     public PlayerWorldChangeListener(SMPPositionSaver plugin) {
         this.plugin = plugin;
+        startPositionMonitoring();
+    }
+    
+    private void startPositionMonitoring() {
+        // Démarrer une tâche qui vérifie toutes les secondes les positions des joueurs dans les mondes SMP
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player player : plugin.getServer().getOnlinePlayers()) {
+                    String worldName = player.getWorld().getName();
+                    if (plugin.getConfigManager().isSmpWorld(worldName)) {
+                        // Sauvegarder la position actuelle du joueur dans le monde SMP
+                        plugin.getPositionManager().savePosition(player, worldName);
+                        plugin.getConfigManager().debugLog("Position surveillée pour " + player.getName() + " dans " + worldName);
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L); // Démarrer après 1 seconde, puis toutes les secondes (20 ticks)
     }
     
     @EventHandler(priority = EventPriority.MONITOR)
