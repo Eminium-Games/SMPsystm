@@ -73,7 +73,7 @@ public class PositionManager {
             }
         }
         
-        plugin.getLogger().info("Positions SMP chargées pour " + lastSmpPosition.size() + " joueurs.");
+        // ...existing code...
     }
     
     public void savePosition(Player player, String worldName) {
@@ -99,7 +99,6 @@ public class PositionManager {
         
         try {
             positionsConfig.save(positionsFile);
-            plugin.getConfigManager().debugLog("Position SMP sauvegardée pour " + player.getName() + " dans " + worldName);
         } catch (IOException e) {
             plugin.getLogger().warning("Impossible de sauvegarder la position: " + e.getMessage());
         }
@@ -140,19 +139,12 @@ public class PositionManager {
         // Première tentative immédiate
         if (player.teleport(location)) {
             teleported = true;
-            plugin.getConfigManager().debugLog("Téléportation réussie pour " + player.getName() + " vers " + location);
-        } else {
-            plugin.getConfigManager().debugLog("Première téléportation échouée pour " + player.getName());
         }
         
         // Si la première tentative échoue, réessayer après un court délai
         if (!teleported) {
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                if (player.teleport(location)) {
-                    plugin.getConfigManager().debugLog("Deuxième téléportation réussie pour " + player.getName());
-                } else {
-                    plugin.getLogger().warning("Échec de la téléportation pour " + player.getName() + " vers " + location);
-                }
+                player.teleport(location);
             }, 5L); // 0.25 seconde
         }
         
@@ -164,15 +156,12 @@ public class PositionManager {
                 player.teleport(location);
             }
         }, 10L); // 0.5 seconde
-        
-        plugin.getConfigManager().debugLog("Position SMP restaurée pour " + player.getName() + " dans " + position.getWorldName());
         return true;
     }
     
     public void saveAllPositions() {
         try {
             positionsConfig.save(positionsFile);
-            plugin.getConfigManager().debugLog("Toutes les positions SMP ont été sauvegardées.");
         } catch (IOException e) {
             plugin.getLogger().warning("Impossible de sauvegarder toutes les positions: " + e.getMessage());
         }
@@ -184,7 +173,6 @@ public class PositionManager {
         
         try {
             positionsConfig.save(positionsFile);
-            plugin.getConfigManager().debugLog("Positions SMP supprimées pour le joueur " + playerId);
         } catch (IOException e) {
             plugin.getLogger().warning("Impossible de supprimer les positions du joueur: " + e.getMessage());
         }
