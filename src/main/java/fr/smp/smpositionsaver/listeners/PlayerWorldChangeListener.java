@@ -1,6 +1,7 @@
 package fr.smp.smpositionsaver.listeners;
 
 import fr.smp.smpositionsaver.SMPPositionSaver;
+import fr.smp.smpositionsaver.models.PlayerPosition;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
