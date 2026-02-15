@@ -76,8 +76,11 @@ public class PositionManager {
     }
     
     public void savePosition(Player player, String worldName) {
+        savePosition(player, player.getLocation(), worldName);
+    }
+    
+    public void savePosition(Player player, Location location, String worldName) {
         UUID playerId = player.getUniqueId();
-        Location location = player.getLocation();
         
         PlayerPosition position = new PlayerPosition(location);
         

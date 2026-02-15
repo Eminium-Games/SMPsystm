@@ -67,9 +67,19 @@ public class PlayerWorldChangeListener implements Listener {
         boolean fromIsSmp = plugin.getConfigManager().isSmpWorld(fromWorld);
         boolean toIsSmp = plugin.getConfigManager().isSmpWorld(toWorld);
         
-        // Si le joueur quitte un monde SMP, sauvegarder sa position
+        // Si le joueur quitte un monde SMP, sauvegarder sa position dans le monde quitté
         if (fromIsSmp) {
-            plugin.getPositionManager().savePosition(player, fromWorld);
+            // Créer une location dans le monde quitté avec les coordonnées actuelles du joueur
+            Location fromLocation = new Location(
+                event.getFrom(), 
+                player.getLocation().getX(), 
+                player.getLocation().getY(), 
+                player.getLocation().getZ(), 
+                player.getLocation().getYaw(), 
+                player.getLocation().getPitch()
+            );
+            
+            plugin.getPositionManager().savePosition(player, fromLocation, fromWorld);
             String message = plugin.getConfigManager().getMessage("position-saved", "world", fromWorld);
             player.sendMessage(message);
         }
