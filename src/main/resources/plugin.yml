@@ -1,11 +1,14 @@
 name: SMPPositionSaver
-version: '1.0.0'
+version: 1.0.0
 main: fr.smp.smpositionsaver.SMPPositionSaver
 api-version: 1.21
 author: SMP Team
 description: Plugin pour sauvegarder et restaurer les positions des joueurs dans les mondes SMP
-commands: []
+website: https://github.com/Eminium-Games/SMPsystm
+commands: {}
 permissions:
   smppositionsaver.use:
     description: Permet d'utiliser le système de sauvegarde de position
     default: true
+depend: []
+softdepend: []
