@@ -29,6 +29,7 @@ public class PlayerWorldChangeListener implements Listener {
                     String worldName = player.getWorld().getName();
                     if (plugin.getConfigManager().isSmpWorld(worldName)) {
                         // Sauvegarder la position actuelle du joueur dans le monde SMP
+                        // C'est sa vraie dernière position, 1 seconde avant de potentiellement quitter
                         plugin.getPositionManager().savePosition(player, worldName);
                         plugin.getConfigManager().debugLog("Position surveillée pour " + player.getName() + " dans " + worldName);
                     }
@@ -68,12 +69,9 @@ public class PlayerWorldChangeListener implements Listener {
         
         plugin.getConfigManager().debugLog(player.getName() + " a quitté le serveur depuis le monde: " + currentWorld);
         
-        // Si le joueur quitte un monde SMP et qu'on doit sauvegarder la position
-        if (plugin.getConfigManager().isSmpWorld(currentWorld) && plugin.getConfigManager().saveOnQuit()) {
-            plugin.getPositionManager().savePosition(player, currentWorld);
-            String message = plugin.getConfigManager().getMessage("position-saved", "world", currentWorld);
-            player.sendMessage(message);
-        }
+        // Pas de sauvegarde au quit car la position a déjà été sauvegardée
+        // 1 seconde avant par la tâche de surveillance continue
+        // La sauvegarde contient déjà la vraie dernière position du joueur
     }
     
     @EventHandler(priority = EventPriority.MONITOR)
@@ -87,22 +85,9 @@ public class PlayerWorldChangeListener implements Listener {
         boolean fromIsSmp = plugin.getConfigManager().isSmpWorld(fromWorld);
         boolean toIsSmp = plugin.getConfigManager().isSmpWorld(toWorld);
         
-        // Si le joueur quitte un monde SMP, sauvegarder sa position dans le monde quitté
-        if (fromIsSmp) {
-            // Créer une location dans le monde quitté avec les coordonnées actuelles du joueur
-            Location fromLocation = new Location(
-                event.getFrom(), 
-                player.getLocation().getX(), 
-                player.getLocation().getY(), 
-                player.getLocation().getZ(), 
-                player.getLocation().getYaw(), 
-                player.getLocation().getPitch()
-            );
-            
-            plugin.getPositionManager().savePosition(player, fromLocation, fromWorld);
-            String message = plugin.getConfigManager().getMessage("position-saved", "world", fromWorld);
-            player.sendMessage(message);
-        }
+        // Pas de sauvegarde au changement de monde car la position a déjà été sauvegardée
+        // 1 seconde avant par la tâche de surveillance continue
+        // La sauvegarde contient déjà la vraie dernière position du joueur dans le monde quitté
         
         // Si le joueur entre dans un monde SMP, restaurer sa dernière position SMP si elle existe
         if (toIsSmp) {
