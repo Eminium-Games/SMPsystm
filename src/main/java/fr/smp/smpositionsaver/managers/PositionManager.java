@@ -133,7 +133,37 @@ public class PositionManager {
             position.getPitch()
         );
         
-        player.teleport(location);
+        // Forcer la téléportation avec plusieurs tentatives
+        boolean teleported = false;
+        
+        // Première tentative immédiate
+        if (player.teleport(location)) {
+            teleported = true;
+            plugin.getConfigManager().debugLog("Téléportation réussie pour " + player.getName() + " vers " + location);
+        } else {
+            plugin.getConfigManager().debugLog("Première téléportation échouée pour " + player.getName());
+        }
+        
+        // Si la première tentative échoue, réessayer après un court délai
+        if (!teleported) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if (player.teleport(location)) {
+                    plugin.getConfigManager().debugLog("Deuxième téléportation réussie pour " + player.getName());
+                } else {
+                    plugin.getLogger().warning("Échec de la téléportation pour " + player.getName() + " vers " + location);
+                }
+            }, 5L); // 0.25 seconde
+        }
+        
+        // S'assurer que le joueur est dans le bon monde
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!player.getWorld().getName().equals(position.getWorldName())) {
+                plugin.getLogger().warning("Le joueur " + player.getName() + " n'est pas dans le bon monde après téléportation");
+                // Forcer le changement de monde
+                player.teleport(location);
+            }
+        }, 10L); // 0.5 seconde
+        
         plugin.getConfigManager().debugLog("Position SMP restaurée pour " + player.getName() + " dans " + position.getWorldName());
         return true;
     }

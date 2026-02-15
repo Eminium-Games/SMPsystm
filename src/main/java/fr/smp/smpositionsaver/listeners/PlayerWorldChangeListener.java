@@ -92,13 +92,35 @@ public class PlayerWorldChangeListener implements Listener {
         // Si le joueur entre dans un monde SMP, restaurer sa dernière position SMP si elle existe
         if (toIsSmp) {
             if (plugin.getPositionManager().hasLastPosition(player.getUniqueId())) {
-                // Restaurer après un petit délai pour éviter les conflits
+                // Restaurer après un délai plus long pour éviter les conflits
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     if (plugin.getPositionManager().restorePosition(player)) {
                         String message = plugin.getConfigManager().getMessage("position-restored", "world", toWorld);
                         player.sendMessage(message);
+                        
+                        // Vérification finale après la téléportation
+                        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                            PlayerPosition lastPos = plugin.getPositionManager().getLastPosition(player.getUniqueId());
+                            if (lastPos != null) {
+                                Location expectedLoc = new Location(
+                                    plugin.getServer().getWorld(lastPos.getWorldName()),
+                                    lastPos.getX(),
+                                    lastPos.getY(),
+                                    lastPos.getZ()
+                                );
+                                Location currentLoc = player.getLocation();
+                                
+                                double distance = currentLoc.distance(expectedLoc);
+                                if (distance > 5.0) { // Si le joueur est à plus de 5 blocs de la position attendue
+                                    plugin.getLogger().warning("Le joueur " + player.getName() + " n'a pas été correctement téléporté. Distance: " + distance);
+                                    player.sendMessage("§cLa téléportation a échoué. Veuillez réessayer.");
+                                } else {
+                                    plugin.getConfigManager().debugLog("Téléportation vérifiée avec succès pour " + player.getName());
+                                }
+                            }
+                        }, 20L); // 1 seconde après la restauration
                     }
-                }, 10L); // 0.5 seconde de délai
+                }, 30L); // 1.5 secondes de délai
             } else {
                 String message = plugin.getConfigManager().getMessage("no-position-saved");
                 player.sendMessage(message);
