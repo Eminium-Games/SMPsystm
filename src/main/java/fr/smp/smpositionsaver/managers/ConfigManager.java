@@ -1,11 +1,9 @@
 package fr.smp.smpositionsaver.managers;
 
-import fr.smp.smpositionsaver.SMPPositionSaver;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
-
 import java.util.List;
 import java.util.logging.Level;
+
+import fr.smp.smpositionsaver.SMPPositionSaver;
 
 public class ConfigManager {
     

@@ -1,7 +1,11 @@
 package fr.smp.smpositionsaver.managers;
 
-import fr.smp.smpositionsaver.SMPPositionSaver;
-import fr.smp.smpositionsaver.models.PlayerPosition;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
@@ -9,11 +13,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import fr.smp.smpositionsaver.SMPPositionSaver;
+import fr.smp.smpositionsaver.models.PlayerPosition;
 
 public class PositionManager {
     

@@ -1,9 +1,10 @@
 package fr.smp.smpositionsaver;
 
+import org.bukkit.plugin.java.JavaPlugin;
+
 import fr.smp.smpositionsaver.listeners.PlayerWorldChangeListener;
 import fr.smp.smpositionsaver.managers.ConfigManager;
 import fr.smp.smpositionsaver.managers.PositionManager;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class SMPPositionSaver extends JavaPlugin {
     

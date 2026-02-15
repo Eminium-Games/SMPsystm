@@ -1,8 +1,5 @@
 package fr.smp.smpositionsaver.listeners;
 
-import fr.smp.smpositionsaver.SMPPositionSaver;
-import fr.smp.smpositionsaver.models.PlayerPosition;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -12,9 +9,13 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import fr.smp.smpositionsaver.SMPPositionSaver;
+
 public class PlayerWorldChangeListener implements Listener {
     
     private final SMPPositionSaver plugin;
+    // State d'enregistrement : True si le joueur est dans un monde SMP, False sinon
+    private final java.util.Map<java.util.UUID, Boolean> recordingState = new java.util.concurrent.ConcurrentHashMap<>();
     
     public PlayerWorldChangeListener(SMPPositionSaver plugin) {
         this.plugin = plugin;
@@ -28,15 +29,16 @@ public class PlayerWorldChangeListener implements Listener {
             public void run() {
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
                     String worldName = player.getWorld().getName();
-                    if (plugin.getConfigManager().isSmpWorld(worldName)) {
-                        // Sauvegarder la position actuelle du joueur dans le monde SMP
-                        // C'est sa vraie dernière position, 1 seconde avant de potentiellement quitter
+                    boolean isSmp = plugin.getConfigManager().isSmpWorld(worldName);
+                    // Mettre à jour le state d'enregistrement
+                    recordingState.put(player.getUniqueId(), isSmp);
+                    if (isSmp) {
                         plugin.getPositionManager().savePosition(player, worldName);
                         plugin.getConfigManager().debugLog("Position surveillée pour " + player.getName() + " dans " + worldName);
                     }
                 }
             }
-        }.runTaskTimer(plugin, 20L, 20L); // Démarrer après 1 seconde, puis toutes les secondes (20 ticks)
+        }.runTaskTimer(plugin, 20L, 20L);
     }
     
     @EventHandler(priority = EventPriority.MONITOR)
@@ -80,52 +82,48 @@ public class PlayerWorldChangeListener implements Listener {
         Player player = event.getPlayer();
         String fromWorld = event.getFrom().getName();
         String toWorld = player.getWorld().getName();
-        
         plugin.getConfigManager().debugLog(player.getName() + " a changé de monde: " + fromWorld + " -> " + toWorld);
-        
         boolean fromIsSmp = plugin.getConfigManager().isSmpWorld(fromWorld);
         boolean toIsSmp = plugin.getConfigManager().isSmpWorld(toWorld);
-        
-        // Pas de sauvegarde au changement de monde car la position a déjà été sauvegardée
-        // 1 seconde avant par la tâche de surveillance continue
-        // La sauvegarde contient déjà la vraie dernière position du joueur dans le monde quitté
-        
-        // Si le joueur entre dans un monde SMP, restaurer sa dernière position SMP si elle existe
-        if (toIsSmp) {
+        boolean wasRecording = recordingState.getOrDefault(player.getUniqueId(), false);
+        // Si le joueur arrive dans un monde SMP depuis un monde non-SMP et qu'il n'était pas en train d'enregistrer
+        if (toIsSmp && !fromIsSmp && !wasRecording) {
             if (plugin.getPositionManager().hasLastPosition(player.getUniqueId())) {
-                // Restaurer après un délai plus long pour éviter les conflits
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     if (plugin.getPositionManager().restorePosition(player)) {
                         String message = plugin.getConfigManager().getMessage("position-restored", "world", toWorld);
                         player.sendMessage(message);
-                        
+                        recordingState.put(player.getUniqueId(), true);
                         // Vérification finale après la téléportation
                         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                            PlayerPosition lastPos = plugin.getPositionManager().getLastPosition(player.getUniqueId());
+                            fr.smp.smpositionsaver.models.PlayerPosition lastPos = plugin.getPositionManager().getLastPosition(player.getUniqueId());
                             if (lastPos != null) {
-                                Location expectedLoc = new Location(
+                                org.bukkit.Location expectedLoc = new org.bukkit.Location(
                                     plugin.getServer().getWorld(lastPos.getWorldName()),
                                     lastPos.getX(),
                                     lastPos.getY(),
                                     lastPos.getZ()
                                 );
-                                Location currentLoc = player.getLocation();
-                                
+                                org.bukkit.Location currentLoc = player.getLocation();
                                 double distance = currentLoc.distance(expectedLoc);
-                                if (distance > 5.0) { // Si le joueur est à plus de 5 blocs de la position attendue
+                                if (distance > 5.0) {
                                     plugin.getLogger().warning("Le joueur " + player.getName() + " n'a pas été correctement téléporté. Distance: " + distance);
                                     player.sendMessage("§cLa téléportation a échoué. Veuillez réessayer.");
                                 } else {
                                     plugin.getConfigManager().debugLog("Téléportation vérifiée avec succès pour " + player.getName());
                                 }
                             }
-                        }, 20L); // 1 seconde après la restauration
+                        }, 20L);
                     }
-                }, 30L); // 1.5 secondes de délai
+                }, 20L);
             } else {
                 String message = plugin.getConfigManager().getMessage("no-position-saved");
                 player.sendMessage(message);
+                recordingState.put(player.getUniqueId(), true);
             }
+        } else if (!toIsSmp) {
+            // Si le joueur quitte un monde SMP, on arrête d'enregistrer
+            recordingState.put(player.getUniqueId(), false);
         }
     }
 }
