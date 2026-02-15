@@ -26,14 +26,17 @@ public class PlayerWorldChangeListener implements Listener {
         
         // Si le joueur rejoint un monde SMP et qu'on doit restaurer la position
         if (plugin.getConfigManager().isSmpWorld(currentWorld) && plugin.getConfigManager().restoreOnJoin()) {
-            if (plugin.getPositionManager().hasLastPosition(player.getUniqueId(), currentWorld)) {
+            if (plugin.getPositionManager().hasLastPosition(player.getUniqueId())) {
                 // Restaurer la position après un petit délai pour éviter les conflits
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    if (plugin.getPositionManager().restorePosition(player, currentWorld)) {
+                    if (plugin.getPositionManager().restorePosition(player)) {
                         String message = plugin.getConfigManager().getMessage("position-restored", "world", currentWorld);
                         player.sendMessage(message);
                     }
                 }, 20L); // 1 seconde de délai
+            } else {
+                String message = plugin.getConfigManager().getMessage("no-position-saved");
+                player.sendMessage(message);
             }
         }
     }
@@ -65,42 +68,25 @@ public class PlayerWorldChangeListener implements Listener {
         boolean toIsSmp = plugin.getConfigManager().isSmpWorld(toWorld);
         
         // Si le joueur quitte un monde SMP, sauvegarder sa position
-        if (fromIsSmp && !toIsSmp) {
+        if (fromIsSmp) {
             plugin.getPositionManager().savePosition(player, fromWorld);
             String message = plugin.getConfigManager().getMessage("position-saved", "world", fromWorld);
             player.sendMessage(message);
         }
-        // Si le joueur entre dans un monde SMP, restaurer sa position si elle existe
-        else if (!fromIsSmp && toIsSmp) {
-            if (plugin.getPositionManager().hasLastPosition(player.getUniqueId(), toWorld)) {
+        
+        // Si le joueur entre dans un monde SMP, restaurer sa dernière position SMP si elle existe
+        if (toIsSmp) {
+            if (plugin.getPositionManager().hasLastPosition(player.getUniqueId())) {
                 // Restaurer après un petit délai pour éviter les conflits
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    if (plugin.getPositionManager().restorePosition(player, toWorld)) {
+                    if (plugin.getPositionManager().restorePosition(player)) {
                         String message = plugin.getConfigManager().getMessage("position-restored", "world", toWorld);
-                        player.sendMessage(message);
-                    } else {
-                        String message = plugin.getConfigManager().getMessage("no-position-saved");
                         player.sendMessage(message);
                     }
                 }, 10L); // 0.5 seconde de délai
             } else {
                 String message = plugin.getConfigManager().getMessage("no-position-saved");
                 player.sendMessage(message);
-            }
-        }
-        // Si le joueur change entre deux mondes SMP
-        else if (fromIsSmp && toIsSmp) {
-            // Sauvegarder la position dans le monde d'origine
-            plugin.getPositionManager().savePosition(player, fromWorld);
-            
-            // Restaurer la position dans le nouveau monde si elle existe
-            if (plugin.getPositionManager().hasLastPosition(player.getUniqueId(), toWorld)) {
-                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    if (plugin.getPositionManager().restorePosition(player, toWorld)) {
-                        String message = plugin.getConfigManager().getMessage("position-restored", "world", toWorld);
-                        player.sendMessage(message);
-                    }
-                }, 10L);
             }
         }
     }

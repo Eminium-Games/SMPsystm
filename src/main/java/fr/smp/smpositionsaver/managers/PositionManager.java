@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,13 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PositionManager {
     
     private final SMPPositionSaver plugin;
-    private final Map<UUID, Map<String, PlayerPosition>> playerPositions;
+    private final Map<UUID, PlayerPosition> lastSmpPosition;
     private final File positionsFile;
     private FileConfiguration positionsConfig;
     
     public PositionManager(SMPPositionSaver plugin) {
         this.plugin = plugin;
-        this.playerPositions = new ConcurrentHashMap<>();
+        this.lastSmpPosition = new ConcurrentHashMap<>();
         this.positionsFile = new File(plugin.getDataFolder(), "positions.yml");
         loadPositions();
     }
@@ -42,7 +41,7 @@ public class PositionManager {
         
         positionsConfig = YamlConfiguration.loadConfiguration(positionsFile);
         
-        // Charger les positions en mémoire
+        // Charger les positions en mémoire - une seule position par joueur
         ConfigurationSection playersSection = positionsConfig.getConfigurationSection("players");
         if (playersSection != null) {
             for (String playerUuid : playersSection.getKeys(false)) {
@@ -54,31 +53,26 @@ public class PositionManager {
                     continue;
                 }
                 
-                Map<String, PlayerPosition> worldPositions = new HashMap<>();
-                ConfigurationSection worldsSection = playersSection.getConfigurationSection(playerUuid);
-                
-                if (worldsSection != null) {
-                    for (String worldName : worldsSection.getKeys(false)) {
-                        ConfigurationSection posSection = worldsSection.getConfigurationSection(worldName);
-                        if (posSection != null) {
-                            PlayerPosition position = new PlayerPosition(
-                                worldName,
-                                posSection.getDouble("x"),
-                                posSection.getDouble("y"),
-                                posSection.getDouble("z"),
-                                (float) posSection.getDouble("yaw"),
-                                (float) posSection.getDouble("pitch")
-                            );
-                            worldPositions.put(worldName, position);
-                        }
+                ConfigurationSection playerSection = playersSection.getConfigurationSection(playerUuid);
+                if (playerSection != null) {
+                    // Charger la dernière position SMP sauvegardée
+                    ConfigurationSection posSection = playerSection.getConfigurationSection("last_smp_position");
+                    if (posSection != null) {
+                        PlayerPosition position = new PlayerPosition(
+                            posSection.getString("world"),
+                            posSection.getDouble("x"),
+                            posSection.getDouble("y"),
+                            posSection.getDouble("z"),
+                            (float) posSection.getDouble("yaw"),
+                            (float) posSection.getDouble("pitch")
+                        );
+                        lastSmpPosition.put(uuid, position);
                     }
                 }
-                
-                playerPositions.put(uuid, worldPositions);
             }
         }
         
-        plugin.getLogger().info("Positions chargées pour " + playerPositions.size() + " joueurs.");
+        plugin.getLogger().info("Positions SMP chargées pour " + lastSmpPosition.size() + " joueurs.");
     }
     
     public void savePosition(Player player, String worldName) {
@@ -88,39 +82,35 @@ public class PositionManager {
         PlayerPosition position = new PlayerPosition(location);
         
         // Sauvegarder en mémoire
-        playerPositions.computeIfAbsent(playerId, k -> new HashMap<>()).put(worldName, position);
+        lastSmpPosition.put(playerId, position);
         
-        // Sauvegarder dans le fichier
-        String playerPath = "players." + playerId.toString() + "." + worldName;
-        positionsConfig.set(playerPath + ".x", location.getX());
-        positionsConfig.set(playerPath + ".y", location.getY());
-        positionsConfig.set(playerPath + ".z", location.getZ());
-        positionsConfig.set(playerPath + ".yaw", location.getYaw());
-        positionsConfig.set(playerPath + ".pitch", location.getPitch());
+        // Sauvegarder dans le fichier - une seule entrée par joueur
+        String playerPath = "players." + playerId.toString();
+        positionsConfig.set(playerPath + ".last_smp_position.world", location.getWorld().getName());
+        positionsConfig.set(playerPath + ".last_smp_position.x", location.getX());
+        positionsConfig.set(playerPath + ".last_smp_position.y", location.getY());
+        positionsConfig.set(playerPath + ".last_smp_position.z", location.getZ());
+        positionsConfig.set(playerPath + ".last_smp_position.yaw", location.getYaw());
+        positionsConfig.set(playerPath + ".last_smp_position.pitch", location.getPitch());
         
         try {
             positionsConfig.save(positionsFile);
-            plugin.getConfigManager().debugLog("Position sauvegardée pour " + player.getName() + " dans " + worldName);
+            plugin.getConfigManager().debugLog("Position SMP sauvegardée pour " + player.getName() + " dans " + worldName);
         } catch (IOException e) {
             plugin.getLogger().warning("Impossible de sauvegarder la position: " + e.getMessage());
         }
     }
     
-    public PlayerPosition getLastPosition(UUID playerId, String worldName) {
-        Map<String, PlayerPosition> worldPositions = playerPositions.get(playerId);
-        if (worldPositions != null) {
-            return worldPositions.get(worldName);
-        }
-        return null;
+    public PlayerPosition getLastPosition(UUID playerId) {
+        return lastSmpPosition.get(playerId);
     }
     
-    public boolean hasLastPosition(UUID playerId, String worldName) {
-        Map<String, PlayerPosition> worldPositions = playerPositions.get(playerId);
-        return worldPositions != null && worldPositions.containsKey(worldName);
+    public boolean hasLastPosition(UUID playerId) {
+        return lastSmpPosition.containsKey(playerId);
     }
     
-    public boolean restorePosition(Player player, String worldName) {
-        PlayerPosition position = getLastPosition(player.getUniqueId(), worldName);
+    public boolean restorePosition(Player player) {
+        PlayerPosition position = getLastPosition(player.getUniqueId());
         if (position == null) {
             return false;
         }
@@ -141,26 +131,26 @@ public class PositionManager {
         );
         
         player.teleport(location);
-        plugin.getConfigManager().debugLog("Position restaurée pour " + player.getName() + " dans " + worldName);
+        plugin.getConfigManager().debugLog("Position SMP restaurée pour " + player.getName() + " dans " + position.getWorldName());
         return true;
     }
     
     public void saveAllPositions() {
         try {
             positionsConfig.save(positionsFile);
-            plugin.getConfigManager().debugLog("Toutes les positions ont été sauvegardées.");
+            plugin.getConfigManager().debugLog("Toutes les positions SMP ont été sauvegardées.");
         } catch (IOException e) {
             plugin.getLogger().warning("Impossible de sauvegarder toutes les positions: " + e.getMessage());
         }
     }
     
     public void removePlayerPositions(UUID playerId) {
-        playerPositions.remove(playerId);
+        lastSmpPosition.remove(playerId);
         positionsConfig.set("players." + playerId.toString(), null);
         
         try {
             positionsConfig.save(positionsFile);
-            plugin.getConfigManager().debugLog("Positions supprimées pour le joueur " + playerId);
+            plugin.getConfigManager().debugLog("Positions SMP supprimées pour le joueur " + playerId);
         } catch (IOException e) {
             plugin.getLogger().warning("Impossible de supprimer les positions du joueur: " + e.getMessage());
         }
