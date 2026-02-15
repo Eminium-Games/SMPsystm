@@ -33,16 +33,9 @@ jobs:
     - name: Build JAR with Maven
       run: mvn clean package -DskipTests
       
-    - name: Find JAR file
-      id: find-jar
-      run: |
-        JAR_FILE=$(find target -name "*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
-        echo "jar_path=$JAR_FILE" >> $GITHUB_OUTPUT
-        echo "jar_name=$(basename $JAR_FILE)" >> $GITHUB_OUTPUT
-        
     - name: Upload JAR artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.find-jar.outputs.jar_name }}
-        path: ${{ steps.find-jar.outputs.jar_path }}
+        name: smp-position-saver
+        path: target/SMP Position Saver-1.0.0.jar
         retention-days: 30
