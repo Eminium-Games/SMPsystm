@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Filter;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
@@ -19,6 +22,9 @@ public class SMPPositionSaver extends JavaPlugin {
     
     private ConfigManager configManager;
     private PositionManager positionManager;
+    // Thread-local flag used by the logger filter to suppress specific log lines
+    private static final ThreadLocal<Boolean> suppressFunctionLogs = ThreadLocal.withInitial(() -> false);
+    private Filter previousRootFilter;
     
     @Override
     public void onEnable() {
@@ -31,6 +37,25 @@ public class SMPPositionSaver extends JavaPlugin {
         
         // Enregistrer les listeners
         getServer().getPluginManager().registerEvents(new PlayerWorldChangeListener(this), this);
+
+        // Create a silent console sender to suppress sendMessage feedback
+        org.bukkit.command.CommandSender silentConsole = new SilentCommandSender(getServer().getConsoleSender());
+
+        // Install a temporary root logger filter that will suppress "Running function" messages
+        Logger rootLogger = Logger.getLogger("");
+        this.previousRootFilter = rootLogger.getFilter();
+        rootLogger.setFilter(new Filter() {
+            @Override
+            public boolean isLoggable(LogRecord record) {
+                if (suppressFunctionLogs.get() && record.getMessage() != null && record.getMessage().contains("Running function")) {
+                    return false;
+                }
+                if (previousRootFilter != null) {
+                    return previousRootFilter.isLoggable(record);
+                }
+                return true;
+            }
+        });
 
         // Scheduler: run per-player functions
         // Every tick: execute function bracken:player/tick as each player in SMP worlds
@@ -54,8 +79,13 @@ public class SMPPositionSaver extends JavaPlugin {
                 world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
                 world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, false);
 
-                for (Player player : players) {
-                    Bukkit.dispatchCommand(getServer().getConsoleSender(), "execute as " + player.getName() + " run function bracken:player/tick");
+                try {
+                    suppressFunctionLogs.set(true);
+                    for (Player player : players) {
+                        Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/tick");
+                    }
+                } finally {
+                    suppressFunctionLogs.set(false);
                 }
 
                 world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, prevSend != null ? prevSend : true);
@@ -82,12 +112,17 @@ public class SMPPositionSaver extends JavaPlugin {
                 world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, false);
 
                 boolean isSmp = getConfigManager().isSmpWorld(world.getName());
-                for (Player player : players) {
-                    if (isSmp) {
-                        Bukkit.dispatchCommand(getServer().getConsoleSender(), "execute as " + player.getName() + " run function bracken:player/attributes/apply_species");
-                    } else {
-                        Bukkit.dispatchCommand(getServer().getConsoleSender(), "execute as " + player.getName() + " run function bracken:player/attributes/remove_all");
+                try {
+                    suppressFunctionLogs.set(true);
+                    for (Player player : players) {
+                        if (isSmp) {
+                            Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/attributes/apply_species");
+                        } else {
+                            Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/attributes/remove_all");
+                        }
                     }
+                } finally {
+                    suppressFunctionLogs.set(false);
                 }
 
                 world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, prevSend != null ? prevSend : true);
@@ -100,6 +135,9 @@ public class SMPPositionSaver extends JavaPlugin {
     
     @Override
     public void onDisable() {
+        // Restore any previously-set root logger filter
+        Logger rootLogger = Logger.getLogger("");
+        rootLogger.setFilter(this.previousRootFilter);
         getLogger().info("SMPPositionSaver désactivé!");
     }
     
@@ -109,5 +147,114 @@ public class SMPPositionSaver extends JavaPlugin {
     
     public PositionManager getPositionManager() {
         return positionManager;
+    }
+
+    // Silent wrapper which delegates permissions and server info but suppresses messages
+    private static class SilentCommandSender implements org.bukkit.command.CommandSender {
+        private final org.bukkit.command.CommandSender delegate;
+
+        SilentCommandSender(org.bukkit.command.CommandSender delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void sendMessage(String message) {
+            // suppress
+        }
+
+        @Override
+        public void sendMessage(String[] messages) {
+            // suppress
+        }
+
+        @Override
+        public void sendMessage(java.util.UUID sender, String message) {
+            // suppress
+        }
+
+        @Override
+        public void sendMessage(java.util.UUID sender, String[] messages) {
+            // suppress
+        }
+
+        @Override
+        public org.bukkit.Server getServer() {
+            return delegate.getServer();
+        }
+
+        @Override
+        public String getName() {
+            return delegate.getName();
+        }
+
+        @Override
+        public boolean isPermissionSet(String name) {
+            return delegate.isPermissionSet(name);
+        }
+
+        @Override
+        public boolean isPermissionSet(org.bukkit.permissions.Permission perm) {
+            return delegate.isPermissionSet(perm);
+        }
+
+        @Override
+        public boolean hasPermission(String name) {
+            return delegate.hasPermission(name);
+        }
+
+        @Override
+        public boolean hasPermission(org.bukkit.permissions.Permission perm) {
+            return delegate.hasPermission(perm);
+        }
+
+        @Override
+        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, String name, boolean value) {
+            return delegate.addAttachment(plugin, name, value);
+        }
+
+        @Override
+        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin) {
+            return delegate.addAttachment(plugin);
+        }
+
+        @Override
+        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, String name, boolean value, int ticks) {
+            return delegate.addAttachment(plugin, name, value, ticks);
+        }
+
+        @Override
+        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, int ticks) {
+            return delegate.addAttachment(plugin, ticks);
+        }
+
+        @Override
+        public void removeAttachment(org.bukkit.permissions.PermissionAttachment attachment) {
+            delegate.removeAttachment(attachment);
+        }
+
+        @Override
+        public void recalculatePermissions() {
+            delegate.recalculatePermissions();
+        }
+
+        @Override
+        public java.util.Set<org.bukkit.permissions.PermissionAttachmentInfo> getEffectivePermissions() {
+            return delegate.getEffectivePermissions();
+        }
+
+        @Override
+        public boolean isOp() {
+            return delegate.isOp();
+        }
+
+        @Override
+        public void setOp(boolean value) {
+            delegate.setOp(value);
+        }
+
+        @Override
+        public org.bukkit.command.CommandSender.Spigot spigot() {
+            return delegate.spigot();
+        }
     }
 }
