@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Filter;
 import java.util.logging.Handler;
+import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
@@ -27,6 +28,7 @@ public class SMPPositionSaver extends JavaPlugin {
     private static final ThreadLocal<Boolean> suppressFunctionLogs = ThreadLocal.withInitial(() -> false);
     private Filter previousRootFilter;
     private Map<Handler, Filter> previousHandlerFilters = new HashMap<>();
+    private Map<Logger, Filter> previousLoggerFilters = new HashMap<>();
     
     @Override
     public void onEnable() {
@@ -63,6 +65,27 @@ public class SMPPositionSaver extends JavaPlugin {
         for (Handler h : rootLogger.getHandlers()) {
             previousHandlerFilters.put(h, h.getFilter());
             h.setFilter(functionFilter);
+        }
+        // Apply filter to all known loggers and their handlers to catch messages from other logger names
+        LogManager lm = LogManager.getLogManager();
+        java.util.Enumeration<String> names = lm.getLoggerNames();
+        while (names.hasMoreElements()) {
+            String name = names.nextElement();
+            try {
+                Logger l = Logger.getLogger(name);
+                if (l != null) {
+                    previousLoggerFilters.put(l, l.getFilter());
+                    l.setFilter(functionFilter);
+                    for (Handler h : l.getHandlers()) {
+                        if (!previousHandlerFilters.containsKey(h)) {
+                            previousHandlerFilters.put(h, h.getFilter());
+                            h.setFilter(functionFilter);
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                // ignore any issues enumerating loggers
+            }
         }
 
         // Scheduler: run per-player functions
@@ -148,6 +171,14 @@ public class SMPPositionSaver extends JavaPlugin {
         rootLogger.setFilter(this.previousRootFilter);
         // Restore previous handler filters
         for (Map.Entry<Handler, Filter> e : previousHandlerFilters.entrySet()) {
+            try {
+                e.getKey().setFilter(e.getValue());
+            } catch (Exception ex) {
+                // ignore failures during shutdown
+            }
+        }
+        // Restore previous logger filters
+        for (Map.Entry<Logger, Filter> e : previousLoggerFilters.entrySet()) {
             try {
                 e.getKey().setFilter(e.getValue());
             } catch (Exception ex) {
