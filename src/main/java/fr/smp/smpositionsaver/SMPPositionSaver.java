@@ -38,8 +38,8 @@ public class SMPPositionSaver extends JavaPlugin {
         // Enregistrer les listeners
         getServer().getPluginManager().registerEvents(new PlayerWorldChangeListener(this), this);
 
-        // Create a silent console sender to suppress sendMessage feedback
-        org.bukkit.command.CommandSender silentConsole = new SilentCommandSender(getServer().getConsoleSender());
+        // Use the server console sender directly (avoid wrapping it — CraftBukkit requires a vanilla listener)
+        org.bukkit.command.CommandSender console = getServer().getConsoleSender();
 
         // Install a temporary root logger filter that will suppress "Running function" messages
         Logger rootLogger = Logger.getLogger("");
@@ -82,7 +82,7 @@ public class SMPPositionSaver extends JavaPlugin {
                 try {
                     suppressFunctionLogs.set(true);
                     for (Player player : players) {
-                        Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/tick");
+                        Bukkit.dispatchCommand(console, "execute as " + player.getName() + " run function bracken:player/tick");
                     }
                 } finally {
                     suppressFunctionLogs.set(false);
@@ -116,9 +116,9 @@ public class SMPPositionSaver extends JavaPlugin {
                     suppressFunctionLogs.set(true);
                     for (Player player : players) {
                         if (isSmp) {
-                            Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/attributes/apply_species");
+                            Bukkit.dispatchCommand(console, "execute as " + player.getName() + " run function bracken:player/attributes/apply_species");
                         } else {
-                            Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/attributes/remove_all");
+                            Bukkit.dispatchCommand(console, "execute as " + player.getName() + " run function bracken:player/attributes/remove_all");
                         }
                     }
                 } finally {
@@ -150,111 +150,5 @@ public class SMPPositionSaver extends JavaPlugin {
     }
 
     // Silent wrapper which delegates permissions and server info but suppresses messages
-    private static class SilentCommandSender implements org.bukkit.command.CommandSender {
-        private final org.bukkit.command.CommandSender delegate;
-
-        SilentCommandSender(org.bukkit.command.CommandSender delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void sendMessage(String message) {
-            // suppress
-        }
-
-        @Override
-        public void sendMessage(String[] messages) {
-            // suppress
-        }
-
-        @Override
-        public void sendMessage(java.util.UUID sender, String message) {
-            // suppress
-        }
-
-        @Override
-        public void sendMessage(java.util.UUID sender, String[] messages) {
-            // suppress
-        }
-
-        @Override
-        public org.bukkit.Server getServer() {
-            return delegate.getServer();
-        }
-
-        @Override
-        public String getName() {
-            return delegate.getName();
-        }
-
-        @Override
-        public boolean isPermissionSet(String name) {
-            return delegate.isPermissionSet(name);
-        }
-
-        @Override
-        public boolean isPermissionSet(org.bukkit.permissions.Permission perm) {
-            return delegate.isPermissionSet(perm);
-        }
-
-        @Override
-        public boolean hasPermission(String name) {
-            return delegate.hasPermission(name);
-        }
-
-        @Override
-        public boolean hasPermission(org.bukkit.permissions.Permission perm) {
-            return delegate.hasPermission(perm);
-        }
-
-        @Override
-        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, String name, boolean value) {
-            return delegate.addAttachment(plugin, name, value);
-        }
-
-        @Override
-        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin) {
-            return delegate.addAttachment(plugin);
-        }
-
-        @Override
-        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, String name, boolean value, int ticks) {
-            return delegate.addAttachment(plugin, name, value, ticks);
-        }
-
-        @Override
-        public org.bukkit.permissions.PermissionAttachment addAttachment(org.bukkit.plugin.Plugin plugin, int ticks) {
-            return delegate.addAttachment(plugin, ticks);
-        }
-
-        @Override
-        public void removeAttachment(org.bukkit.permissions.PermissionAttachment attachment) {
-            delegate.removeAttachment(attachment);
-        }
-
-        @Override
-        public void recalculatePermissions() {
-            delegate.recalculatePermissions();
-        }
-
-        @Override
-        public java.util.Set<org.bukkit.permissions.PermissionAttachmentInfo> getEffectivePermissions() {
-            return delegate.getEffectivePermissions();
-        }
-
-        @Override
-        public boolean isOp() {
-            return delegate.isOp();
-        }
-
-        @Override
-        public void setOp(boolean value) {
-            delegate.setOp(value);
-        }
-
-        @Override
-        public org.bukkit.command.CommandSender.Spigot spigot() {
-            return delegate.spigot();
-        }
-    }
+    // SilentCommandSender removed: using console sender directly to remain compatible with CraftBukkit.
 }
