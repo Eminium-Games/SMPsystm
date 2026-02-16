@@ -4,11 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Filter;
-import java.util.logging.Handler;
-import java.util.logging.LogManager;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
@@ -26,11 +21,7 @@ public class SMPPositionSaver extends JavaPlugin {
     private ConfigManager configManager;
     private PositionManager positionManager;
     private PlayerStateManager playerStateManager;
-    // Thread-local flag used by the logger filter to suppress specific log lines
-    private static final ThreadLocal<Boolean> suppressFunctionLogs = ThreadLocal.withInitial(() -> false);
-    private Filter previousRootFilter;
-    private Map<Handler, Filter> previousHandlerFilters = new HashMap<>();
-    private Map<Logger, Filter> previousLoggerFilters = new HashMap<>();
+    // (no logger filters) — we won't modify server/handler filters anymore
     
     @Override
     public void onEnable() {
@@ -50,53 +41,7 @@ public class SMPPositionSaver extends JavaPlugin {
         // Player state manager: keeps a YAML mapping of player UUID -> boolean (is in SMP)
         this.playerStateManager = new PlayerStateManager(this);
 
-        // Install a temporary root logger filter that will suppress "Running function" messages
-        Logger rootLogger = Logger.getLogger("");
-        this.previousRootFilter = rootLogger.getFilter();
-        final Filter capturedPrev = this.previousRootFilter;
-        Filter functionFilter = new Filter() {
-            @Override
-            public boolean isLoggable(LogRecord record) {
-                if (suppressFunctionLogs.get() && record.getMessage() != null && record.getMessage().contains("Running function")) {
-                    return false;
-                }
-                if (capturedPrev != null && capturedPrev != this) {
-                    try {
-                        return capturedPrev.isLoggable(record);
-                    } catch (Throwable t) {
-                        return true;
-                    }
-                }
-                return true;
-            }
-        };
-        rootLogger.setFilter(functionFilter);
-        // Also apply the same filter to existing handlers to ensure suppression across handlers
-        for (Handler h : rootLogger.getHandlers()) {
-            previousHandlerFilters.put(h, h.getFilter());
-            h.setFilter(functionFilter);
-        }
-        // Apply filter to all known loggers and their handlers to catch messages from other logger names
-        LogManager lm = LogManager.getLogManager();
-        java.util.Enumeration<String> names = lm.getLoggerNames();
-        while (names.hasMoreElements()) {
-            String name = names.nextElement();
-            try {
-                Logger l = Logger.getLogger(name);
-                if (l != null) {
-                    previousLoggerFilters.put(l, l.getFilter());
-                    l.setFilter(functionFilter);
-                    for (Handler h : l.getHandlers()) {
-                        if (!previousHandlerFilters.containsKey(h)) {
-                            previousHandlerFilters.put(h, h.getFilter());
-                            h.setFilter(functionFilter);
-                        }
-                    }
-                }
-            } catch (Exception ex) {
-                // ignore any issues enumerating loggers
-            }
-        }
+        // No console log filtering — rely on player-state checks to avoid repeated function runs
 
         // Scheduler: run per-player functions
         // Every tick: execute function bracken:player/tick as each player in SMP worlds
@@ -120,13 +65,8 @@ public class SMPPositionSaver extends JavaPlugin {
                 world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
                 world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, false);
 
-                try {
-                    suppressFunctionLogs.set(true);
-                    for (Player player : players) {
-                        Bukkit.dispatchCommand(console, "execute as " + player.getName() + " run function bracken:player/tick");
-                    }
-                } finally {
-                    suppressFunctionLogs.set(false);
+                for (Player player : players) {
+                    Bukkit.dispatchCommand(console, "execute as " + player.getName() + " run function bracken:player/tick");
                 }
 
                 world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, prevSend != null ? prevSend : true);
@@ -153,8 +93,6 @@ public class SMPPositionSaver extends JavaPlugin {
                 world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, false);
 
                 boolean isSmp = getConfigManager().isSmpWorld(world.getName());
-                try {
-                    suppressFunctionLogs.set(true);
                     for (Player player : players) {
                         boolean prev = playerStateManager.getState(player.getUniqueId());
                         if (isSmp && !prev) {
@@ -168,9 +106,6 @@ public class SMPPositionSaver extends JavaPlugin {
                         }
                         // if isSmp == prev, do nothing — avoids repeated function runs and log spam
                     }
-                } finally {
-                    suppressFunctionLogs.set(false);
-                }
 
                 world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, prevSend != null ? prevSend : true);
                 world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, prevLog != null ? prevLog : true);
@@ -182,25 +117,7 @@ public class SMPPositionSaver extends JavaPlugin {
     
     @Override
     public void onDisable() {
-        // Restore any previously-set root logger filter
-        Logger rootLogger = Logger.getLogger("");
-        rootLogger.setFilter(this.previousRootFilter);
-        // Restore previous handler filters
-        for (Map.Entry<Handler, Filter> e : previousHandlerFilters.entrySet()) {
-            try {
-                e.getKey().setFilter(e.getValue());
-            } catch (Exception ex) {
-                // ignore failures during shutdown
-            }
-        }
-        // Restore previous logger filters
-        for (Map.Entry<Logger, Filter> e : previousLoggerFilters.entrySet()) {
-            try {
-                e.getKey().setFilter(e.getValue());
-            } catch (Exception ex) {
-                // ignore failures during shutdown
-            }
-        }
+        // No logger filters to restore.
         getLogger().info("SMPPositionSaver désactivé!");
     }
     
