@@ -45,34 +45,34 @@ public class SMPPositionSaver extends JavaPlugin {
 
         // Scheduler: run per-player functions
         // Every tick: execute function bracken:player/tick as each player in SMP worlds
-        getServer().getScheduler().runTaskTimer(this, () -> {
-            // Grouper les joueurs par monde pour minimiser les changements de gamerules
-            Map<World, List<Player>> byWorld = new HashMap<>();
-            for (Player player : getServer().getOnlinePlayers()) {
-                String worldName = player.getWorld().getName();
-                if (getConfigManager().isSmpWorld(worldName)) {
-                    World w = player.getWorld();
-                    byWorld.computeIfAbsent(w, k -> new ArrayList<>()).add(player);
-                }
-            }
+        // getServer().getScheduler().runTaskTimer(this, () -> {
+        //     // Grouper les joueurs par monde pour minimiser les changements de gamerules
+        //     Map<World, List<Player>> byWorld = new HashMap<>();
+        //     for (Player player : getServer().getOnlinePlayers()) {
+        //         String worldName = player.getWorld().getName();
+        //         if (getConfigManager().isSmpWorld(worldName)) {
+        //             World w = player.getWorld();
+        //             byWorld.computeIfAbsent(w, k -> new ArrayList<>()).add(player);
+        //         }
+        //     }
 
-            for (Map.Entry<World, List<Player>> entry : byWorld.entrySet()) {
-                World world = entry.getKey();
-                List<Player> players = entry.getValue();
+        //     for (Map.Entry<World, List<Player>> entry : byWorld.entrySet()) {
+        //         World world = entry.getKey();
+        //         List<Player> players = entry.getValue();
 
-                Boolean prevSend = world.getGameRuleValue(GameRule.SEND_COMMAND_FEEDBACK);
-                Boolean prevLog = world.getGameRuleValue(GameRule.LOG_ADMIN_COMMANDS);
-                world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
-                world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, false);
+        //         Boolean prevSend = world.getGameRuleValue(GameRule.SEND_COMMAND_FEEDBACK);
+        //         Boolean prevLog = world.getGameRuleValue(GameRule.LOG_ADMIN_COMMANDS);
+        //         world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
+        //         world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, false);
 
-                for (Player player : players) {
-                    Bukkit.dispatchCommand(console, "execute as " + player.getName() + " run function bracken:player/tick");
-                }
+        //         for (Player player : players) {
+        //             Bukkit.dispatchCommand(console, "execute as " + player.getName() + " run function bracken:player/tick");
+        //         }
 
-                world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, prevSend != null ? prevSend : true);
-                world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, prevLog != null ? prevLog : true);
-            }
-        }, 0L, 1L);
+        //         world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, prevSend != null ? prevSend : true);
+        //         world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, prevLog != null ? prevLog : true);
+        //     }
+        // }, 0L, 1L);
 
         // Every 10 ticks: apply or remove species attributes for each player
         getServer().getScheduler().runTaskTimer(this, () -> {
