@@ -18,12 +18,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import fr.smp.smpositionsaver.listeners.PlayerWorldChangeListener;
 import fr.smp.smpositionsaver.managers.ConfigManager;
+import fr.smp.smpositionsaver.managers.PlayerStateManager;
 import fr.smp.smpositionsaver.managers.PositionManager;
 
 public class SMPPositionSaver extends JavaPlugin {
     
     private ConfigManager configManager;
     private PositionManager positionManager;
+    private PlayerStateManager playerStateManager;
     // Thread-local flag used by the logger filter to suppress specific log lines
     private static final ThreadLocal<Boolean> suppressFunctionLogs = ThreadLocal.withInitial(() -> false);
     private Filter previousRootFilter;
@@ -44,6 +46,9 @@ public class SMPPositionSaver extends JavaPlugin {
 
         // Use the server console sender directly (avoid wrapping it — CraftBukkit requires a vanilla listener)
         org.bukkit.command.CommandSender console = getServer().getConsoleSender();
+
+        // Player state manager: keeps a YAML mapping of player UUID -> boolean (is in SMP)
+        this.playerStateManager = new PlayerStateManager(this);
 
         // Install a temporary root logger filter that will suppress "Running function" messages
         Logger rootLogger = Logger.getLogger("");
@@ -146,11 +151,17 @@ public class SMPPositionSaver extends JavaPlugin {
                 try {
                     suppressFunctionLogs.set(true);
                     for (Player player : players) {
-                        if (isSmp) {
+                        boolean prev = playerStateManager.getState(player.getUniqueId());
+                        if (isSmp && !prev) {
+                            // player entered SMP according to world/config and previous state says not in SMP
                             Bukkit.dispatchCommand(console, "execute as " + player.getName() + " run function bracken:player/attributes/apply_species");
-                        } else {
+                            playerStateManager.setState(player.getUniqueId(), true);
+                        } else if (!isSmp && prev) {
+                            // player left SMP: only run remove when previous state indicated they were in SMP
                             Bukkit.dispatchCommand(console, "execute as " + player.getName() + " run function bracken:player/attributes/remove_all");
+                            playerStateManager.setState(player.getUniqueId(), false);
                         }
+                        // if isSmp == prev, do nothing — avoids repeated function runs and log spam
                     }
                 } finally {
                     suppressFunctionLogs.set(false);
