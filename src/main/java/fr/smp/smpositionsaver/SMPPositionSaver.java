@@ -53,14 +53,19 @@ public class SMPPositionSaver extends JavaPlugin {
         // Install a temporary root logger filter that will suppress "Running function" messages
         Logger rootLogger = Logger.getLogger("");
         this.previousRootFilter = rootLogger.getFilter();
+        final Filter capturedPrev = this.previousRootFilter;
         Filter functionFilter = new Filter() {
             @Override
             public boolean isLoggable(LogRecord record) {
                 if (suppressFunctionLogs.get() && record.getMessage() != null && record.getMessage().contains("Running function")) {
                     return false;
                 }
-                if (previousRootFilter != null) {
-                    return previousRootFilter.isLoggable(record);
+                if (capturedPrev != null && capturedPrev != this) {
+                    try {
+                        return capturedPrev.isLoggable(record);
+                    } catch (Throwable t) {
+                        return true;
+                    }
                 }
                 return true;
             }
