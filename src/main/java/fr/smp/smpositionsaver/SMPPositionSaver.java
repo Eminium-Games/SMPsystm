@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Filter;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
@@ -19,6 +22,9 @@ public class SMPPositionSaver extends JavaPlugin {
     
     private ConfigManager configManager;
     private PositionManager positionManager;
+    // Thread-local flag used by the logger filter to suppress specific log lines
+    private static final ThreadLocal<Boolean> suppressFunctionLogs = ThreadLocal.withInitial(() -> false);
+    private Filter previousRootFilter;
     
     @Override
     public void onEnable() {
@@ -34,6 +40,22 @@ public class SMPPositionSaver extends JavaPlugin {
 
         // Create a silent console sender to suppress sendMessage feedback
         org.bukkit.command.CommandSender silentConsole = new SilentCommandSender(getServer().getConsoleSender());
+
+        // Install a temporary root logger filter that will suppress "Running function" messages
+        Logger rootLogger = Logger.getLogger("");
+        this.previousRootFilter = rootLogger.getFilter();
+        rootLogger.setFilter(new Filter() {
+            @Override
+            public boolean isLoggable(LogRecord record) {
+                if (suppressFunctionLogs.get() && record.getMessage() != null && record.getMessage().contains("Running function")) {
+                    return false;
+                }
+                if (previousRootFilter != null) {
+                    return previousRootFilter.isLoggable(record);
+                }
+                return true;
+            }
+        });
 
         // Scheduler: run per-player functions
         // Every tick: execute function bracken:player/tick as each player in SMP worlds
@@ -57,8 +79,13 @@ public class SMPPositionSaver extends JavaPlugin {
                 world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, false);
                 world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, false);
 
-                for (Player player : players) {
-                    Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/tick");
+                try {
+                    suppressFunctionLogs.set(true);
+                    for (Player player : players) {
+                        Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/tick");
+                    }
+                } finally {
+                    suppressFunctionLogs.set(false);
                 }
 
                 world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, prevSend != null ? prevSend : true);
@@ -85,12 +112,17 @@ public class SMPPositionSaver extends JavaPlugin {
                 world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, false);
 
                 boolean isSmp = getConfigManager().isSmpWorld(world.getName());
-                for (Player player : players) {
-                    if (isSmp) {
-                        Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/attributes/apply_species");
-                    } else {
-                        Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/attributes/remove_all");
+                try {
+                    suppressFunctionLogs.set(true);
+                    for (Player player : players) {
+                        if (isSmp) {
+                            Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/attributes/apply_species");
+                        } else {
+                            Bukkit.dispatchCommand(silentConsole, "execute as " + player.getName() + " run function bracken:player/attributes/remove_all");
+                        }
                     }
+                } finally {
+                    suppressFunctionLogs.set(false);
                 }
 
                 world.setGameRule(GameRule.SEND_COMMAND_FEEDBACK, prevSend != null ? prevSend : true);
@@ -103,6 +135,9 @@ public class SMPPositionSaver extends JavaPlugin {
     
     @Override
     public void onDisable() {
+        // Restore any previously-set root logger filter
+        Logger rootLogger = Logger.getLogger("");
+        rootLogger.setFilter(this.previousRootFilter);
         getLogger().info("SMPPositionSaver désactivé!");
     }
     
