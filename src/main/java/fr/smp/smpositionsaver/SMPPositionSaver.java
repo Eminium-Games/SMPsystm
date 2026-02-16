@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Filter;
+import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
@@ -25,6 +26,7 @@ public class SMPPositionSaver extends JavaPlugin {
     // Thread-local flag used by the logger filter to suppress specific log lines
     private static final ThreadLocal<Boolean> suppressFunctionLogs = ThreadLocal.withInitial(() -> false);
     private Filter previousRootFilter;
+    private Map<Handler, Filter> previousHandlerFilters = new HashMap<>();
     
     @Override
     public void onEnable() {
@@ -44,7 +46,7 @@ public class SMPPositionSaver extends JavaPlugin {
         // Install a temporary root logger filter that will suppress "Running function" messages
         Logger rootLogger = Logger.getLogger("");
         this.previousRootFilter = rootLogger.getFilter();
-        rootLogger.setFilter(new Filter() {
+        Filter functionFilter = new Filter() {
             @Override
             public boolean isLoggable(LogRecord record) {
                 if (suppressFunctionLogs.get() && record.getMessage() != null && record.getMessage().contains("Running function")) {
@@ -55,7 +57,13 @@ public class SMPPositionSaver extends JavaPlugin {
                 }
                 return true;
             }
-        });
+        };
+        rootLogger.setFilter(functionFilter);
+        // Also apply the same filter to existing handlers to ensure suppression across handlers
+        for (Handler h : rootLogger.getHandlers()) {
+            previousHandlerFilters.put(h, h.getFilter());
+            h.setFilter(functionFilter);
+        }
 
         // Scheduler: run per-player functions
         // Every tick: execute function bracken:player/tick as each player in SMP worlds
@@ -138,6 +146,14 @@ public class SMPPositionSaver extends JavaPlugin {
         // Restore any previously-set root logger filter
         Logger rootLogger = Logger.getLogger("");
         rootLogger.setFilter(this.previousRootFilter);
+        // Restore previous handler filters
+        for (Map.Entry<Handler, Filter> e : previousHandlerFilters.entrySet()) {
+            try {
+                e.getKey().setFilter(e.getValue());
+            } catch (Exception ex) {
+                // ignore failures during shutdown
+            }
+        }
         getLogger().info("SMPPositionSaver désactivé!");
     }
     
