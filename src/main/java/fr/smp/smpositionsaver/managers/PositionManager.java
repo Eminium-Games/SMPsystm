@@ -77,10 +77,23 @@ public class PositionManager {
     }
     
     public void savePosition(Player player, String worldName) {
+        // Ne pas sauvegarder si le monde est une instance
+        if (worldName != null && worldName.startsWith("instance_")) {
+            plugin.getLogger().info("Ignorer la sauvegarde de position dans un monde 'instance': " + worldName);
+            return;
+        }
         savePosition(player, player.getLocation(), worldName);
     }
     
     public void savePosition(Player player, Location location, String worldName) {
+        String wn = (location != null && location.getWorld() != null)
+                ? location.getWorld().getName()
+                : worldName;
+        if (wn != null && wn.startsWith("instance_")) {
+            plugin.getLogger().info("Ignorer la sauvegarde de position dans un monde 'instance': " + wn);
+            return;
+        }
+
         UUID playerId = player.getUniqueId();
         
         PlayerPosition position = new PlayerPosition(location);
@@ -118,9 +131,16 @@ public class PositionManager {
             return false;
         }
         
-        World world = plugin.getServer().getWorld(position.getWorldName());
+        String worldName = position.getWorldName();
+        // Ne pas téléporter si le monde est une instance
+        if (worldName != null && worldName.startsWith("instance_")) {
+            plugin.getLogger().info("Ignorer la téléportation vers un monde 'instance': " + worldName);
+            return false;
+        }
+        
+        World world = plugin.getServer().getWorld(worldName);
         if (world == null) {
-            plugin.getLogger().warning("Monde non trouvé: " + position.getWorldName());
+            plugin.getLogger().warning("Monde non trouvé: " + worldName);
             return false;
         }
         
