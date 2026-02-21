@@ -6,7 +6,10 @@ api: spigot
 author: Eminium Games
 description: Plugin pour sauvegarder et restaurer les positions des joueurs dans les mondes SMP
 website: https://github.com/Eminium-Games/SMPsystm
-commands: {}
+commands:
+  smp:
+    description: Téléporte le joueur aux coordonnées SMP définies dans la configuration.
+    usage: /smp
 permissions:
   smppositionsaver.use:
     description: Permet d'utiliser le système de sauvegarde de position

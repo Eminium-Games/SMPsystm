@@ -20,3 +20,10 @@ options:
   save-on-quit: true
   restore-on-join: true
   debug: false
+
+# Coordonnées par défaut pour le /smp teleport
+smp-coordinates:
+  x: 0
+  y: 64
+  z: 0
+  world: world

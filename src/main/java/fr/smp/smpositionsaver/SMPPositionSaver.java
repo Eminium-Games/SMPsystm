@@ -10,6 +10,10 @@ import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.Location;
 
 import fr.smp.smpositionsaver.listeners.PlayerWorldChangeListener;
 import fr.smp.smpositionsaver.managers.ConfigManager;
@@ -111,6 +115,31 @@ public class SMPPositionSaver extends JavaPlugin {
                 world.setGameRule(GameRule.LOG_ADMIN_COMMANDS, prevLog != null ? prevLog : true);
             }
         }, 0L, 10L);
+        
+        // Register the /smp command
+        getCommand("smp").setExecutor(new CommandExecutor() {
+            @Override
+            public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+                if (sender instanceof Player) {
+                    Player player = (Player) sender;
+                    double x = getConfig().getDouble("smp-coordinates.x", 0);
+                    double y = getConfig().getDouble("smp-coordinates.y", 64);
+                    double z = getConfig().getDouble("smp-coordinates.z", 0);
+                    String worldName = getConfig().getString("smp-coordinates.world", "world");
+                    World world = Bukkit.getWorld(worldName);
+
+                    if (world != null) {
+                        Location location = new Location(world, x, y, z);
+                        player.teleport(location);
+                    } else {
+                        player.sendMessage("§cLe monde spécifié n'existe pas.");
+                    }
+                } else {
+                    sender.sendMessage("§cSeuls les joueurs peuvent exécuter cette commande.");
+                }
+                return true;
+            }
+        });
         
         getLogger().info("SMPPositionSaver activé avec succès!");
     }
