@@ -18,7 +18,25 @@ public class ConfigManager {
     }
     
     public boolean isSmpWorld(String worldName) {
-        return getSmpWorlds().contains(worldName);
+        // Allow entries with a simple wildcard ('*').
+        // A pattern such as "world_*" will match any world beginning with "world_".
+        // We convert each configured entry to a regex and test against the given name.
+        for (String entry : getSmpWorlds()) {
+            if (entry.contains("*")) {
+                // escape regexp meta-characters except '*', then replace '*' with '.*'
+                String regex = entry.replace(".", "\\.")
+                                    .replace("*", ".*");
+                if (worldName.matches(regex)) {
+                    // debugLog("matched wildcard pattern '" + entry + "' against world '" + worldName + "'");
+                    return true;
+                }
+            } else {
+                if (entry.equals(worldName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     
     public boolean saveOnQuit() {

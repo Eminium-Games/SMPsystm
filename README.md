@@ -53,6 +53,9 @@ options:
 
 Ajoutez ou retirez des mondes dans la section `smp-worlds` pour définir quels mondes sont considérés comme faisant partie du groupe SMP.
 
+- Les noms peuvent être des correspondances exactes ou utiliser le caractère joker `*`.
+  Par exemple `world_*` couvrira `world_1`, `world_nether`, etc.
+
 ### Options
 
 - `save-on-quit` : Sauvegarder la position lorsque le joueur quitte le serveur
