@@ -30,8 +30,7 @@ public class PlayerWorldChangeListener implements Listener {
             public void run() {
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
                     String worldName = player.getWorld().getName();
-                    // Never treat 'instance_' worlds as SMP for recording purposes
-                    boolean isSmp = plugin.getConfigManager().isSmpWorld(worldName) && !worldName.startsWith("instance_");
+                    boolean isSmp = plugin.getConfigManager().isSmpWorld(worldName);
                     // Mettre à jour le state d'enregistrement
                     recordingState.put(player.getUniqueId(), isSmp);
                     // Ne pas enregistrer si la téléportation est en attente
@@ -64,22 +63,9 @@ public class PlayerWorldChangeListener implements Listener {
         String fromWorld = event.getFrom().getName();
         String toWorld = player.getWorld().getName();
         
-        boolean fromIsSmp = plugin.getConfigManager().isSmpWorld(fromWorld) && !fromWorld.startsWith("instance_");
-        boolean toIsSmp = plugin.getConfigManager().isSmpWorld(toWorld) && !toWorld.startsWith("instance_");
+        boolean fromIsSmp = plugin.getConfigManager().isSmpWorld(fromWorld);
+        boolean toIsSmp = plugin.getConfigManager().isSmpWorld(toWorld);
         boolean wasRecording = recordingState.getOrDefault(player.getUniqueId(), false);
-        // Si le joueur arrive dans un monde d'instance, on le renvoie immédiatement à sa position SMP
-        if (toWorld.startsWith("instance_") && plugin.getPositionManager().hasLastPosition(player.getUniqueId())) {
-            // annulons tout enregistrement
-            recordingState.put(player.getUniqueId(), false);
-            pendingTeleport.put(player.getUniqueId(), true);
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                plugin.getPositionManager().restorePosition(player);
-                pendingTeleport.put(player.getUniqueId(), false);
-            }, 20L);
-            // ne traitons pas les autres cas
-            return;
-        }
-
         // Si le joueur arrive dans un monde SMP depuis un monde non-SMP et qu'il n'était pas en train d'enregistrer
         if (toIsSmp && !fromIsSmp && !wasRecording) {
             if (plugin.getPositionManager().hasLastPosition(player.getUniqueId())) {

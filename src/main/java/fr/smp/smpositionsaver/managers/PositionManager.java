@@ -131,13 +131,14 @@ public class PositionManager {
             return false;
         }
         
-        String worldName = position.getWorldName();
-        // Ne pas téléporter si le monde est une instance
-        if (worldName != null && worldName.startsWith("instance_")) {
-            plugin.getLogger().info("Ignorer la téléportation vers un monde 'instance': " + worldName);
+        String currentWorld = player.getWorld().getName();
+        // Ne pas téléporter si le joueur se trouve déjà dans un monde 'instance'
+        if (currentWorld != null && currentWorld.startsWith("instance_")) {
+            plugin.getLogger().info("Ignorer la téléportation car le joueur est dans un monde 'instance': " + currentWorld);
             return false;
         }
         
+        String worldName = position.getWorldName();
         World world = plugin.getServer().getWorld(worldName);
         if (world == null) {
             plugin.getLogger().warning("Monde non trouvé: " + worldName);
