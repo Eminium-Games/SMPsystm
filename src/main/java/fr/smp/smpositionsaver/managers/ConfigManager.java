@@ -47,6 +47,10 @@ public class ConfigManager {
         return plugin.getConfig().getBoolean("options.restore-on-join", true);
     }
     
+    public boolean clearOnDeath() {
+        return plugin.getConfig().getBoolean("options.clear-on-death", true);
+    }
+    
     public boolean isDebug() {
         return plugin.getConfig().getBoolean("options.debug", false);
     }

@@ -46,6 +46,7 @@ messages:
 options:
   save-on-quit: true
   restore-on-join: true
+  clear-on-death: true
   debug: false
 ```
 
@@ -60,6 +61,7 @@ Ajoutez ou retirez des mondes dans la section `smp-worlds` pour définir quels m
 
 - `save-on-quit` : Sauvegarder la position lorsque le joueur quitte le serveur
 - `restore-on-join` : Restaurer la position lorsque le joueur rejoint le serveur
+- `clear-on-death` : Supprimer les coordonnées sauvegardées lorsqu'un joueur meurt dans un monde SMP
 - `debug` : Activer les logs de débogage
 
 ## Fonctionnement

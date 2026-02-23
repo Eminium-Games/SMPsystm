@@ -6,6 +6,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import fr.smp.smpositionsaver.SMPPositionSaver;
@@ -107,6 +108,16 @@ public class PlayerWorldChangeListener implements Listener {
             // Si le joueur quitte un monde SMP, on arrête d'enregistrer
             recordingState.put(player.getUniqueId(), false);
             pendingTeleport.put(player.getUniqueId(), false);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        String worldName = player.getWorld().getName();
+        // Only clear saved positions if configured and the death happened in an SMP world
+        if (plugin.getConfigManager().clearOnDeath() && plugin.getConfigManager().isSmpWorld(worldName)) {
+            plugin.getPositionManager().removePlayerPositions(player.getUniqueId());
         }
     }
 }

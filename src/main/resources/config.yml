@@ -21,6 +21,7 @@ messages:
 options:
   save-on-quit: true
   restore-on-join: true
+  clear-on-death: true
   debug: false
 
 # Coordonnées par défaut pour le /smp teleport
