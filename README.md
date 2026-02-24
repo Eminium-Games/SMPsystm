@@ -13,9 +13,9 @@ A Bukkit plugin for Minecraft 1.21.8 that saves and restores player positions in
 ## Installation
 
 1. Compile the plugin with Maven:
-   ```bash
-   mvn clean package
-   ```
+  ```bash
+  mvn clean package
+  ```
 
 2. Copy the generated JAR from `target/` to your server's `plugins/` folder.
 
@@ -37,10 +37,10 @@ smp-worlds:
 
 # Customizable messages
 messages:
-position-saved: "§aYour position has been saved in {world}!"
-    position-restored: "§aYou have been teleported to your last position in {world}!"
-    no-position-saved: "§cNo saved position for this world."
-    config-reloaded: "§aConfiguration reloaded successfully!"
+  position-saved: "§aYour position has been saved in {world}!"
+  position-restored: "§aYou have been teleported to your last position in {world}!"
+  no-position-saved: "§cNo saved position for this world."
+  config-reloaded: "§aConfiguration reloaded successfully!"
 
 # Options
 options:
@@ -55,11 +55,9 @@ options:
 
 ### SMP worlds configuration
 
-Add or remove worlds in the `smp-worlds` section to define which worlds
-belong to the SMP group.
+Add or remove worlds in the `smp-worlds` section to define which worlds belong to the SMP group.
 
-- Names may be exact or use the wildcard `*`.
-  For instance `world_*` will match `world_1`, `world_nether`, etc.
+- Names may be exact or use the wildcard `*`. For instance `world_*` will match `world_1`, `world_nether`, etc.
 
 ### Options
 
@@ -88,13 +86,13 @@ Positions are saved in `plugins/SMPPositionSaver/positions.yml` with this struct
 
 ```yaml
 players:
-  <uuid-du-joueur>:
-    <nom-du-monde>:
-      x: 123.45
-      y: 64.0
-      z: -456.78
-      yaw: 90.0
-      pitch: 0.0
+  <player-uuid>:
+   <world-name>:
+    x: 123.45
+    y: 64.0
+    z: -456.78
+    yaw: 90.0
+    pitch: 0.0
 ```
 
 ## Permissions
@@ -103,29 +101,28 @@ players:
 
 ## Commands
 
-- `/smp`: teleports the player to the SMP coordinates defined in the configuration.
-- `/smp reload`: reloads the configuration file; requires permission
-  `smp.reload` (op by default).
+- `/smp`: Teleports the player to the SMP coordinates defined in the configuration.
+- `/smp reload`: Reloads the configuration file; requires permission `smp.reload` (op by default).
 
-This command isn't required for normal operation but can be useful after editing
-`config.yml` without restarting the server.
+This command isn't required for normal operation but can be useful after editing `config.yml` without restarting the server.
 
-## Compatibilité
+## Compatibility
 
-- **Minecraft** : 1.21.8
-- **API** : Spigot/Paper 1.21+
-- **Java** : 21+
+- **Minecraft**: 1.21.8
+- **API**: Spigot/Paper 1.21+
+- **Java**: 21+
 
-## Développement
+## Development
 
-Le plugin est structuré avec les composants suivants :
+The plugin is structured with the following components:
 
-- `SMPPositionSaver` : Classe principale du plugin
-- `ConfigManager` : Gestionnaire de configuration
-- `PositionManager` : Gestionnaire des positions des joueurs
-- `PlayerWorldChangeListener` : Listener pour les événements de changement de monde
-- `PlayerPosition` : Modèle pour représenter une position sauvegardée
+- `SMPPositionSaver`: Main plugin class
+- `ConfigManager`: Configuration manager
+- `PositionManager`: Player position manager
+- `PlayerWorldChangeListener`: Listener for world change events
+- `PlayerPosition`: Model representing a saved position
 
 ## Support
 
 For any questions or issues, please check the server logs or enable debug mode in the configuration.
+
