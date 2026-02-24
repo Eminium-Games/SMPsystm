@@ -1,7 +1,5 @@
 package fr.smp.smpositionsaver.models;
 
-import org.bukkit.Location;
-
 public class PlayerPosition {
     
     private final String worldName;
