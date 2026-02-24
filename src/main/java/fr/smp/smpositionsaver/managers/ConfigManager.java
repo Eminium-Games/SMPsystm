@@ -6,17 +6,17 @@ import java.util.logging.Level;
 import fr.smp.smpositionsaver.SMPPositionSaver;
 
 public class ConfigManager {
-    
+
     private final SMPPositionSaver plugin;
-    
+
     public ConfigManager(SMPPositionSaver plugin) {
         this.plugin = plugin;
     }
-    
+
     public List<String> getSmpWorlds() {
         return plugin.getConfig().getStringList("smp-worlds");
     }
-    
+
     public boolean isSmpWorld(String worldName) {
         // Allow entries with a simple wildcard ('*').
         // A pattern such as "world_*" will match any world beginning with "world_".
@@ -25,9 +25,10 @@ public class ConfigManager {
             if (entry.contains("*")) {
                 // escape regexp meta-characters except '*', then replace '*' with '.*'
                 String regex = entry.replace(".", "\\.")
-                                    .replace("*", ".*");
+                        .replace("*", ".*");
                 if (worldName.matches(regex)) {
-                    // debugLog("matched wildcard pattern '" + entry + "' against world '" + worldName + "'");
+                    // debugLog("matched wildcard pattern '" + entry + "' against world '" +
+                    // worldName + "'");
                     return true;
                 }
             } else {
@@ -38,27 +39,44 @@ public class ConfigManager {
         }
         return false;
     }
-    
+
     public boolean saveOnQuit() {
         return plugin.getConfig().getBoolean("options.save-on-quit", true);
     }
-    
+
     public boolean restoreOnJoin() {
         return plugin.getConfig().getBoolean("options.restore-on-join", true);
     }
-    
+
     public boolean clearOnDeath() {
         return plugin.getConfig().getBoolean("options.clear-on-death", true);
     }
-    
+
     public boolean isDebug() {
         return plugin.getConfig().getBoolean("options.debug", false);
     }
     
+    /**
+     * Fonction datapack à appeler lorsqu'un joueur entre dans un monde SMP.
+     * Le chemin de fonction doit être valide pour "execute ... run function".
+     */
+    public String getEntryFunction() {
+        return plugin.getConfig().getString("options.entry-function",
+                "bracken:player/attributes/apply_species");
+    }
+
+    /**
+     * Fonction datapack à appeler lorsqu'un joueur quitte un monde SMP.
+     */
+    public String getExitFunction() {
+        return plugin.getConfig().getString("options.exit-function",
+                "bracken:player/attributes/remove_all");
+    }
+
     public String getMessage(String key) {
         return plugin.getConfig().getString("messages." + key, "Message non trouvé: " + key);
     }
-    
+
     public String getMessage(String key, String... placeholders) {
         String message = getMessage(key);
         for (int i = 0; i < placeholders.length; i += 2) {
@@ -68,12 +86,12 @@ public class ConfigManager {
         }
         return message;
     }
-    
+
     public void reloadConfig() {
         plugin.reloadConfig();
         plugin.getLogger().info(getMessage("config-reloaded"));
     }
-    
+
     public void debugLog(String message) {
         if (isDebug()) {
             plugin.getLogger().log(Level.INFO, "[DEBUG] " + message);

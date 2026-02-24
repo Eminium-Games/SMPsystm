@@ -1,7 +1,7 @@
-# Configuration des mondes SMP
-# Liste des mondes considérés comme faisant partie du groupe SMP.
-# Les entrées acceptent un joker '*' ; par exemple "world_*" couvrira
-# n'importe quel monde commençant par "world_".
+# SMP worlds configuration
+# List of worlds considered part of the SMP group.
+# Entries support a wildcard '*' ; e.g. "world_*" will match
+# any world starting with "world_".
 smp-worlds:
   - "world"
   - "world_nether"
@@ -10,12 +10,12 @@ smp-worlds:
   - "survival_nether"
   - "survival_the_end"
 
-# Messages
+# Messages (customizable)
 messages:
-  position-saved: "§aVotre position a été sauvegardée dans {world}!"
-  position-restored: "§aVous avez été téléporté à votre dernière position dans {world}!"
-  no-position-saved: "§cAucune position sauvegardée pour ce monde."
-  config-reloaded: "§aConfiguration rechargée avec succès!"
+  position-saved: "§aYour position has been saved in {world}!"
+  position-restored: "§aYou have been teleported to your last position in {world}!"
+  no-position-saved: "§cNo saved position for this world."
+  config-reloaded: "§aConfiguration reloaded successfully!"
 
 # Options
 options:
@@ -23,6 +23,13 @@ options:
   restore-on-join: true
   clear-on-death: true
   debug: false
+
+  # Datapack functions to run when entering/exiting an SMP world.
+  # When a player enters a world marked as SMP, <entry-function> will
+  # be executed with "execute as <player> run function". Exiting triggers
+  # <exit-function>. Defaults match the previous behaviour.
+  entry-function: "datapack:functions/enter_smp"
+  exit-function: "datapack:functions/exit_smp"
 
 # Coordonnées par défaut pour le /smp teleport
 smp-coordinates:

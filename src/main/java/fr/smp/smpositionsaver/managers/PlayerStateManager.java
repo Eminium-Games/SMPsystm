@@ -9,7 +9,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
 /**
- * Simple manager that stores per-player boolean state (in-SMP or not) in a YAML file.
+ * Simple manager that stores per-player boolean state (in-SMP or not) in a YAML
+ * file.
  */
 public class PlayerStateManager {
     private final Plugin plugin;

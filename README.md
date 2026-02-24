@@ -1,32 +1,32 @@
 # SMP Position Saver
 
-Plugin Bukkit pour Minecraft 1.21.8 qui permet de sauvegarder et restaurer les positions des joueurs dans les mondes SMP.
+A Bukkit plugin for Minecraft 1.21.8 that saves and restores player positions in SMP worlds.
 
-## Fonctionnalités
+## Features
 
-- **Sauvegarde automatique** : Sauvegarde la position du joueur lorsqu'il quitte un monde SMP
-- **Restauration automatique** : Restaure la dernière position sauvegardée lorsqu'un joueur entre dans un monde SMP
-- **Configuration flexible** : Liste configurable des mondes considérés comme SMP
-- **Support multi-mondes** : Gère plusieurs mondes SMP simultanément
-- **Stockage YAML** : Positions sauvegardées dans un fichier `positions.yml`
+- **Auto save**: Saves player position when they leave an SMP world
+- **Auto restore**: Restores the last saved position when a player enters an SMP world
+- **Flexible configuration**: Configurable list of worlds treated as SMP
+- **Multi-world support**: Handles multiple SMP worlds at once
+- **YAML storage**: Positions stored in `positions.yml`
 
 ## Installation
 
-1. Compilez le plugin avec Maven :
+1. Compile the plugin with Maven:
    ```bash
    mvn clean package
    ```
 
-2. Copiez le fichier JAR généré dans `target/` vers le dossier `plugins/` de votre serveur Minecraft
+2. Copy the generated JAR from `target/` to your server's `plugins/` folder.
 
-3. Redémarrez le serveur ou rechargez les plugins
+3. Restart the server or reload the plugins.
 
 ## Configuration
 
-Le fichier `config.yml` se générera automatiquement dans le dossier du plugin :
+The `config.yml` file will be generated automatically in the plugin folder:
 
 ```yaml
-# Configuration des mondes SMP
+# SMP worlds configuration
 smp-worlds:
   - "world"
   - "world_nether"
@@ -35,12 +35,12 @@ smp-worlds:
   - "survival_nether"
   - "survival_the_end"
 
-# Messages personnalisables
+# Customizable messages
 messages:
-  position-saved: "§aVotre position a été sauvegardée dans {world}!"
-  position-restored: "§aVous avez été téléporté à votre dernière position dans {world}!"
-  no-position-saved: "§cAucune position sauvegardée pour ce monde."
-  config-reloaded: "§aConfiguration rechargée avec succès!"
+position-saved: "§aYour position has been saved in {world}!"
+    position-restored: "§aYou have been teleported to your last position in {world}!"
+    no-position-saved: "§cNo saved position for this world."
+    config-reloaded: "§aConfiguration reloaded successfully!"
 
 # Options
 options:
@@ -48,39 +48,43 @@ options:
   restore-on-join: true
   clear-on-death: true
   debug: false
+  # Datapack functions executed when entering/exiting an SMP world
+  entry-function: "datapack:functions/enter_smp"
+  exit-function: "datapack:functions/exit_smp"
 ```
 
-### Configuration des mondes SMP
+### SMP worlds configuration
 
-Ajoutez ou retirez des mondes dans la section `smp-worlds` pour définir quels mondes sont considérés comme faisant partie du groupe SMP.
+Add or remove worlds in the `smp-worlds` section to define which worlds
+belong to the SMP group.
 
-- Les noms peuvent être des correspondances exactes ou utiliser le caractère joker `*`.
-  Par exemple `world_*` couvrira `world_1`, `world_nether`, etc.
+- Names may be exact or use the wildcard `*`.
+  For instance `world_*` will match `world_1`, `world_nether`, etc.
 
 ### Options
 
-- `save-on-quit` : Sauvegarder la position lorsque le joueur quitte le serveur
-- `restore-on-join` : Restaurer la position lorsque le joueur rejoint le serveur
-- `clear-on-death` : Supprimer les coordonnées sauvegardées lorsqu'un joueur meurt dans un monde SMP
-- `debug` : Activer les logs de débogage
+- `save-on-quit`: Save the position when the player leaves the server
+- `restore-on-join`: Restore the position when the player joins the server
+- `clear-on-death`: Remove saved coordinates when a player dies in an SMP world
+- `debug`: Enable debug logging
 
-## Fonctionnement
+## How it works
 
-### Quand un joueur entre dans un monde SMP :
+### When a player enters an SMP world:
 
-1. Le plugin vérifie si une position a été sauvegardée pour ce joueur dans ce monde
-2. Si oui, le joueur est téléporté à sa dernière position sauvegardée
-3. Si non, un message l'informe qu'aucune position n'est disponible
+1. The plugin checks if a position was saved for that player in this world
+2. If so, the player is teleported to their last saved position
+3. Otherwise a message informs them that no position is available
 
-### Quand un joueur quitte un monde SMP :
+### When a player leaves an SMP world:
 
-1. Le plugin sauvegarde automatiquement la position actuelle du joueur
-2. Les coordonnées (x, y, z), la direction (yaw, pitch) et le monde sont enregistrés
-3. Un message confirme la sauvegarde
+1. The plugin automatically saves the player's current position
+2. Coordinates (x, y, z), orientation (yaw, pitch) and world are recorded
+3. A message confirms the save
 
-### Stockage des données
+### Data storage
 
-Les positions sont sauvegardées dans le fichier `plugins/SMPPositionSaver/positions.yml` avec cette structure :
+Positions are saved in `plugins/SMPPositionSaver/positions.yml` with this structure:
 
 ```yaml
 players:
@@ -95,11 +99,16 @@ players:
 
 ## Permissions
 
-- `smppositionsaver.use` : Permet d'utiliser le système de sauvegarde de position (par défaut : true)
+- `smppositionsaver.use`: Allows use of the position saving system (default: true)
 
-## Commandes
+## Commands
 
-Ce plugin ne nécessite aucune commande pour fonctionner. Tout est automatique.
+- `/smp`: teleports the player to the SMP coordinates defined in the configuration.
+- `/smp reload`: reloads the configuration file; requires permission
+  `smp.reload` (op by default).
+
+This command isn't required for normal operation but can be useful after editing
+`config.yml` without restarting the server.
 
 ## Compatibilité
 
@@ -119,4 +128,4 @@ Le plugin est structuré avec les composants suivants :
 
 ## Support
 
-Pour toute question ou problème, veuillez consulter les logs du serveur ou activer le mode debug dans la configuration.
+For any questions or issues, please check the server logs or enable debug mode in the configuration.

@@ -4,15 +4,18 @@ main: fr.smp.smpositionsaver.SMPPositionSaver
 api-version: "1.21"
 api: spigot
 author: Eminium Games
-description: Plugin pour sauvegarder et restaurer les positions des joueurs dans les mondes SMP
+description: Plugin to save and restore player positions in SMP worlds
 website: https://github.com/Eminium-Games/SMPsystm
 commands:
   smp:
-    description: Téléporte le joueur aux coordonnées SMP définies dans la configuration.
-    usage: /smp
+    description: Teleports the player to the SMP coordinates defined in the configuration.
+    usage: /smp [reload]
 permissions:
   smppositionsaver.use:
-    description: Permet d'utiliser le système de sauvegarde de position
+    description: Allows using the position saving system
     default: true
+  smp.reload:
+    description: Allows reloading the configuration via /smp reload
+    default: op
 depend: []
 softdepend: []

@@ -9,7 +9,7 @@ public class PlayerPosition {
     private final float yaw;
     private final float pitch;
     
-    public PlayerPosition(Location location) {
+    public PlayerPosition(org.bukkit.Location location) {
         this.worldName = location.getWorld().getName();
         this.x = location.getX();
         this.y = location.getY();

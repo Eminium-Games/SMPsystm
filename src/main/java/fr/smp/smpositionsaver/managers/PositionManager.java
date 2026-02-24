@@ -16,19 +16,19 @@ import fr.smp.smpositionsaver.SMPPositionSaver;
 import fr.smp.smpositionsaver.models.PlayerPosition;
 
 public class PositionManager {
-    
+
     private final SMPPositionSaver plugin;
     private final Map<UUID, PlayerPosition> lastSmpPosition;
     private final File positionsFile;
     private FileConfiguration positionsConfig;
-    
+
     public PositionManager(SMPPositionSaver plugin) {
         this.plugin = plugin;
         this.lastSmpPosition = new ConcurrentHashMap<>();
         this.positionsFile = new File(plugin.getDataFolder(), "positions.yml");
         loadPositions();
     }
-    
+
     private void loadPositions() {
         if (!positionsFile.exists()) {
             try {
@@ -38,10 +38,10 @@ public class PositionManager {
                 return;
             }
         }
-        
+
         positionsConfig = YamlConfiguration.loadConfiguration(positionsFile);
-        
-        // Charger les positions en mémoire - une seule position par joueur
+
+        // load positions into memory - one position per player
         ConfigurationSection playersSection = positionsConfig.getConfigurationSection("players");
         if (playersSection != null) {
             for (String playerUuid : playersSection.getKeys(false)) {
@@ -52,55 +52,52 @@ public class PositionManager {
                     plugin.getLogger().warning("UUID invalide dans positions.yml: " + playerUuid);
                     continue;
                 }
-                
+
                 ConfigurationSection playerSection = playersSection.getConfigurationSection(playerUuid);
                 if (playerSection != null) {
-                    // Charger la dernière position SMP sauvegardée
+                    // load last saved SMP position
                     ConfigurationSection posSection = playerSection.getConfigurationSection("last_smp_position");
                     if (posSection != null) {
                         PlayerPosition position = new PlayerPosition(
-                            posSection.getString("world"),
-                            posSection.getDouble("x"),
-                            posSection.getDouble("y"),
-                            posSection.getDouble("z"),
-                            (float) posSection.getDouble("yaw"),
-                            (float) posSection.getDouble("pitch")
-                        );
+                                posSection.getString("world"),
+                                posSection.getDouble("x"),
+                                posSection.getDouble("y"),
+                                posSection.getDouble("z"),
+                                (float) posSection.getDouble("yaw"),
+                                (float) posSection.getDouble("pitch"));
                         lastSmpPosition.put(uuid, position);
                     }
                 }
             }
         }
-        
-        // ...existing code...
     }
-    
+
     public void savePosition(Player player, String worldName) {
-        // Ne pas sauvegarder si le monde est une instance
+        // don't save if the world is an instance
         if (worldName != null && worldName.startsWith("instance_")) {
-            // plugin.getLogger().info("Ignorer la sauvegarde de position dans un monde 'instance': " + worldName);
+            // plugin.getLogger().info("Ignoring position save in an 'instance' world: " + worldName);
             return;
         }
         savePosition(player, player.getLocation(), worldName);
     }
-    
-    public void savePosition(Player player, Location location, String worldName) {
+
+    public void savePosition(Player player, org.bukkit.Location location, String worldName) {
         String wn = (location != null && location.getWorld() != null)
                 ? location.getWorld().getName()
                 : worldName;
         if (wn != null && wn.startsWith("instance_")) {
-            // plugin.getLogger().info("Ignorer la sauvegarde de position dans un monde 'instance': " + wn);
+            // plugin.getLogger().info("Ignoring position save in an 'instance' world: " + wn);
             return;
         }
 
         UUID playerId = player.getUniqueId();
-        
+
         PlayerPosition position = new PlayerPosition(location);
-        
-        // Sauvegarder en mémoire
+
+        // save in memory
         lastSmpPosition.put(playerId, position);
-        
-        // Sauvegarder dans le fichier - une seule entrée par joueur
+
+        // save to file - one entry per player
         String playerPath = "players." + playerId.toString();
         positionsConfig.set(playerPath + ".last_smp_position.world", location.getWorld().getName());
         positionsConfig.set(playerPath + ".last_smp_position.x", location.getX());
@@ -108,77 +105,78 @@ public class PositionManager {
         positionsConfig.set(playerPath + ".last_smp_position.z", location.getZ());
         positionsConfig.set(playerPath + ".last_smp_position.yaw", location.getYaw());
         positionsConfig.set(playerPath + ".last_smp_position.pitch", location.getPitch());
-        
+
         try {
             positionsConfig.save(positionsFile);
         } catch (IOException e) {
             plugin.getLogger().warning("Impossible de sauvegarder la position: " + e.getMessage());
         }
     }
-    
+
     public PlayerPosition getLastPosition(UUID playerId) {
         return lastSmpPosition.get(playerId);
     }
-    
+
     public boolean hasLastPosition(UUID playerId) {
         return lastSmpPosition.containsKey(playerId);
     }
-    
+
     public boolean restorePosition(Player player) {
         PlayerPosition position = getLastPosition(player.getUniqueId());
         if (position == null) {
             return false;
         }
-        
+
         String currentWorld = player.getWorld().getName();
-        // Ne pas téléporter si le joueur se trouve déjà dans un monde 'instance'
+        // don't teleport if player is already in an 'instance' world
         if (currentWorld != null && currentWorld.startsWith("instance_")) {
-            plugin.getLogger().info("Ignorer la téléportation car le joueur est dans un monde 'instance': " + currentWorld);
+            plugin.getLogger()
+                    .info("Ignorer la téléportation car le joueur est dans un monde 'instance': " + currentWorld);
             return false;
         }
-        
+
         String worldName = position.getWorldName();
         World world = plugin.getServer().getWorld(worldName);
         if (world == null) {
             plugin.getLogger().warning("Monde non trouvé: " + worldName);
             return false;
         }
-        
-        Location location = new Location(
-            world,
-            position.getX(),
-            position.getY(),
-            position.getZ(),
-            position.getYaw(),
-            position.getPitch()
-        );
-        
-        // Forcer la téléportation avec plusieurs tentatives
+
+        org.bukkit.Location location = new org.bukkit.Location(
+                world,
+                position.getX(),
+                position.getY(),
+                position.getZ(),
+                position.getYaw(),
+                position.getPitch());
+
+        // force teleport with multiple attempts
         boolean teleported = false;
-        
-        // Première tentative immédiate
+
+        // first attempt immediately
         if (player.teleport(location)) {
             teleported = true;
         }
-        
-        // Si la première tentative échoue, réessayer après un court délai
+
+        // if the first attempt fails, retry after a short delay
         if (!teleported) {
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 player.teleport(location);
             }, 5L); // 0.25 seconde
         }
-        
-        // S'assurer que le joueur est dans le bon monde
+
+        // ensure the player is in the correct world
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (!player.getWorld().getName().equals(position.getWorldName())) {
-                plugin.getLogger().warning("Le joueur " + player.getName() + " n'est pas dans le bon monde après téléportation");
-                // Forcer le changement de monde
+                plugin.getLogger()
+                        .warning("Le joueur " + player.getName() + " n'est pas dans le bon monde après téléportation");
+                // force world change
                 player.teleport(location);
             }
         }, 10L); // 0.5 seconde
         return true;
     }
-    
+
     public void saveAllPositions() {
         try {
             positionsConfig.save(positionsFile);
@@ -186,11 +184,11 @@ public class PositionManager {
             plugin.getLogger().warning("Impossible de sauvegarder toutes les positions: " + e.getMessage());
         }
     }
-    
+
     public void removePlayerPositions(UUID playerId) {
         lastSmpPosition.remove(playerId);
         positionsConfig.set("players." + playerId.toString(), null);
-        
+
         try {
             positionsConfig.save(positionsFile);
         } catch (IOException e) {
