@@ -27,8 +27,6 @@ public class ConfigManager {
                 String regex = entry.replace(".", "\\.")
                         .replace("*", ".*");
                 if (worldName.matches(regex)) {
-                    // debugLog("matched wildcard pattern '" + entry + "' against world '" +
-                    // worldName + "'");
                     return true;
                 }
             } else {

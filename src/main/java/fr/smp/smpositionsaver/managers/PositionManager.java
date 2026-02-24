@@ -75,8 +75,7 @@ public class PositionManager {
     public void savePosition(Player player, String worldName) {
         // don't save if the world is an instance
         if (worldName != null && worldName.startsWith("instance_")) {
-            // plugin.getLogger().info("Ignoring position save in an 'instance' world: " + worldName);
-            return;
+                return;
         }
         savePosition(player, player.getLocation(), worldName);
     }
@@ -86,7 +85,6 @@ public class PositionManager {
                 ? location.getWorld().getName()
                 : worldName;
         if (wn != null && wn.startsWith("instance_")) {
-            // plugin.getLogger().info("Ignoring position save in an 'instance' world: " + wn);
             return;
         }
 
